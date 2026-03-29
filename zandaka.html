@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Z残高確認" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23e8a87c'/%3E%3Ctext x='90' y='128' font-family='Helvetica Neue,Helvetica,Arial,sans-serif' font-size='110' font-weight='800' fill='%23fff' text-anchor='middle'%3EZ%3C/text%3E%3C/svg%3E" />
+  <title>Z残高確認</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'YuGothic', sans-serif;
+      background: #faf8f5;
+      color: #2d2a26;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #ede9e3;
+      padding: 54px 20px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-sub { font-size: 10px; color: #c0b4a4; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px; }
+    .header-title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+
+    .body { max-width: 520px; margin: 0 auto; padding: 20px 16px 100px; }
+
+    /* Summary */
+    .summary-card {
+      background: #fff; border-radius: 16px; padding: 22px;
+      margin-bottom: 18px; border: 1px solid #ede9e3;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .summary-label { font-size: 12px; color: #b8a898; margin-bottom: 6px; }
+    .summary-amount { font-size: 34px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
+    .badge { display: inline-block; border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; margin-bottom: 14px; }
+    .progress-bg { background: #f0ece6; border-radius: 8px; height: 7px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 8px; transition: width 0.5s ease; }
+    .progress-labels { display: flex; justify-content: space-between; margin-top: 7px; font-size: 11px; color: #c0b4a4; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 18px; background: #f0ece6; border-radius: 12px; padding: 4px; }
+    .tab {
+      flex: 1; padding: 10px 4px; border-radius: 9px; border: none;
+      background: transparent; color: #b0a090; font-size: 13px; font-weight: 400;
+      cursor: pointer; transition: all 0.18s; white-space: nowrap; font-family: inherit;
+    }
+    .tab.active { background: #fff; color: #2d2a26; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+    .section-title { font-size: 11px; color: #c0b4a4; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; font-weight: 600; }
+
+    /* Cards */
+    .card { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; border: 1px solid #ede9e3; }
+    .card-label { font-size: 12px; color: #b0a090; margin-bottom: 6px; }
+    .input-row { display: flex; align-items: baseline; }
+    .yen { color: #c0b4a4; font-size: 14px; margin-right: 4px; }
+    .num-input {
+      background: transparent; border: none; color: #2d2a26;
+      font-size: 22px; font-weight: 700; width: 100%; outline: none; font-family: inherit;
+    }
+    .num-input::placeholder { color: #ddd; }
+
+    .total-box {
+      background: #fdf6ee; border-radius: 12px; padding: 14px 16px;
+      margin-top: 6px; border: 1px solid #f0e4d0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* Expense items */
+    .expense-item { display: flex; align-items: center; gap: 10px; }
+    .expense-main { flex: 1; min-width: 0; }
+    .expense-meta { font-size: 11px; color: #c0b4a4; margin-bottom: 4px; }
+    .expense-cat { color: #c0a880; }
+
+    /* Done toggle button */
+    .done-btn {
+      flex-shrink: 0;
+      border: 1.5px solid #d8cfc4;
+      border-radius: 8px;
+      padding: 0 10px;
+      height: 34px;
+      background: #fff;
+      color: #b0a090;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .done-btn.done {
+      background: #f0ece6;
+      border-color: #c8bfb4;
+      color: #a09080;
+    }
+
+    /* Done state: greyed out */
+    .card.is-done {
+      opacity: 0.45;
+      background: #f5f3f0;
+    }
+    .card.is-done .num-input { color: #b0a898; text-decoration: line-through; }
+    .card.is-done .yen { text-decoration: line-through; }
+
+    .done-label {
+      font-size: 10px;
+      color: #b8a898;
+      margin-top: 3px;
+      display: none;
+    }
+    .card.is-done .done-label { display: block; }
+
+    .delete-btn {
+      flex-shrink: 0; background: #fef4f4; border: none; color: #d8a0a0;
+      border-radius: 8px; width: 30px; height: 30px;
+      cursor: pointer; font-size: 15px; display: flex;
+      align-items: center; justify-content: center; font-family: inherit;
+    }
+
+    /* Add form */
+    .add-box { background: #fff; border-radius: 12px; padding: 16px; border: 1px dashed #d8cfc4; margin-top: 4px; }
+    .add-title { font-size: 12px; color: #c0b4a4; margin-bottom: 12px; font-weight: 600; }
+    .text-input {
+      width: 100%; background: #faf8f5; border: 1px solid #ede9e3;
+      border-radius: 8px; color: #2d2a26; padding: 11px 12px;
+      font-size: 14px; outline: none; margin-bottom: 10px; font-family: inherit;
+    }
+    .text-input::placeholder { color: #c0b4a4; }
+    select.text-input {
+      cursor: pointer; -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c0b4a4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+    }
+    .add-btn {
+      width: 100%; background: #e8a87c; border: none; border-radius: 8px;
+      color: #fff; padding: 13px; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+    }
+
+    /* Summary tab */
+    .cat-row { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
+    .bar-bg { background: #f0ece6; border-radius: 6px; height: 5px; }
+    .bar-fill { height: 100%; background: #e8a87c; border-radius: 6px; transition: width 0.4s ease; }
+    .pct-text { font-size: 11px; color: #c0b4a4; margin-top: 5px; }
+
+    .final-card { background: #fff; border-radius: 14px; padding: 20px; margin-top: 12px; border: 1px solid #ede9e3; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+    .sum-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .divider { border-top: 1px solid #f0ece6; margin: 12px 0; }
+    .empty-msg { color: #c0b4a4; text-align: center; padding: 40px 0; font-size: 14px; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Reset button */
+    .reset-btn {
+      width: 100%; margin-top: 16px; padding: 12px;
+      background: transparent; border: 1px solid #ede9e3;
+      border-radius: 10px; color: #c0b4a4; font-size: 13px;
+      cursor: pointer; font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-sub">Monthly Budget</div>
+  <div class="header-title">残高確認</div>
+</div>
+
+<div class="body">
+
+  <div class="summary-card">
+    <div class="summary-label">今月の残り金額</div>
+    <div class="summary-amount" id="summary-amount">¥0</div>
+    <span class="badge" id="summary-badge">—</span>
+    <div class="progress-bg"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-labels">
+      <span>残高・収入　<span id="total-assets-label">¥0</span></span>
+      <span>支出予定　<span id="total-expenses-label">¥0</span></span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('assets')">収入・残高</button>
+    <button class="tab" onclick="switchTab('expenses')">支出予定</button>
+    <button class="tab" onclick="switchTab('summary')">内訳</button>
+  </div>
+
+  <!-- Assets -->
+  <div class="section active" id="section-assets">
+    <div class="section-title">収入・残高を入力</div>
+    <div class="card">
+      <div class="card-label">現金</div>
+      <div class="input-row"><span class="yen">¥</span><input class="num-input" type="number" inputmode="numeric" placeholder="0" id="input-wallet" oninput="saveAndRecalc()" /></div>
+    </div>
+    <div class="card">
+      <div class="card-label">au PAY 残高</div>
+      <div class="input-row"><span class="yen">¥</span><input class="num-input" type="number" inputmode="numeric" placeholder="0" id="input-aupay" oninput="saveAndRecalc()" /></div>
+    </div>
+    <div class="card">
+      <div class="card-label">今月の収入（給与など）</div>
+      <div class="input-row"><span class="yen">¥</span><input class="num-input" type="number" inputmode="numeric" placeholder="0" id="input-income" oninput="saveAndRecalc()" /></div>
+    </div>
+    <div class="card">
+      <div class="card-label">その他（口座残高など）</div>
+      <div class="input-row"><span class="yen">¥</span><input class="num-input" type="number" inputmode="numeric" placeholder="0" id="input-other" oninput="saveAndRecalc()" /></div>
+    </div>
+    <div class="total-box">
+      <span style="font-size:13px;color:#a09080">合計</span>
+      <span style="font-size:20px;font-weight:700;color:#c07840" id="assets-total">¥0</span>
+    </div>
+  </div>
+
+  <!-- Expenses -->
+  <div class="section" id="section-expenses">
+    <div class="section-title">支出予定を入力</div>
+    <div id="expense-list"></div>
+    <div class="add-box">
+      <div class="add-title">支出を追加</div>
+      <input class="text-input" type="text" id="new-label" placeholder="項目名（例：ジム会費）" />
+      <select class="text-input" id="new-category">
+        <option>家賃・住居</option><option>水道光熱費</option><option>通信費</option>
+        <option>保険</option><option>サブスク</option><option>クレジット</option>
+        <option>食費</option><option>交通費</option><option>医療費</option>
+        <option selected>その他</option>
+      </select>
+      <button class="add-btn" onclick="addExpense()">追加する</button>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="section" id="section-summary">
+    <div class="section-title">カテゴリ別内訳</div>
+    <div id="category-list"></div>
+    <div class="final-card">
+      <div class="sum-row"><span style="font-size:12px;color:#a09080">残高・収入合計</span><span style="font-size:15px;font-weight:700;color:#a09080" id="final-assets">¥0</span></div>
+      <div class="sum-row"><span style="font-size:12px;color:#a09080">支出予定合計</span><span style="font-size:15px;font-weight:700;color:#c89080" id="final-expenses">¥0</span></div>
+      <div class="sum-row" style="margin-bottom:0"><span style="font-size:12px;color:#b8a898">うち実行済み</span><span style="font-size:13px;font-weight:600;color:#c0b4a4" id="final-done">¥0</span></div>
+      <div class="divider"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:#a09080;font-weight:600">今月の余裕金額</span>
+        <span style="font-size:22px;font-weight:800" id="final-remaining">¥0</span>
+      </div>
+    </div>
+    <button class="reset-btn" onclick="confirmReset()">今月分をリセットする</button>
+  </div>
+
+</div>
+
+<script>
+  const CATEGORIES = ["家賃・住居","水道光熱費","通信費","保険","サブスク","クレジット","食費","交通費","医療費","その他"];
+  const STORAGE_KEY = "zandaka_v1";
+
+  const DEFAULT_EXPENSES = [
+    { id: 1, label: "家賃", amount: "", category: "家賃・住居", done: false },
+    { id: 2, label: "電気・ガス・水道", amount: "", category: "水道光熱費", done: false },
+    { id: 3, label: "スマホ・ネット", amount: "", category: "通信費", done: false },
+    { id: 4, label: "クレジット支払い", amount: "", category: "クレジット", done: false },
+  ];
+
+  let nextId = 10;
+  let expenses = [];
+
+  // ── Persistence ──────────────────────────────────────────
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch(e) { return null; }
+  }
+
+  function saveData() {
+    const data = {
+      wallet:  document.getElementById("input-wallet").value,
+      aupay:   document.getElementById("input-aupay").value,
+      income:  document.getElementById("input-income").value,
+      other:   document.getElementById("input-other").value,
+      expenses,
+      nextId,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function restoreData() {
+    const data = loadData();
+    if (data) {
+      document.getElementById("input-wallet").value = data.wallet || "";
+      document.getElementById("input-aupay").value  = data.aupay  || "";
+      document.getElementById("input-income").value = data.income || "";
+      document.getElementById("input-other").value  = data.other  || "";
+      expenses = (data.expenses || DEFAULT_EXPENSES).map(e => ({ ...e, done: e.done || false }));
+      nextId = data.nextId || 10;
+    } else {
+      expenses = DEFAULT_EXPENSES.map(e => ({ ...e }));
+    }
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+  function fmt(n) {
+    if (isNaN(n) || n === "") return "¥0";
+    return "¥" + Number(n).toLocaleString("ja-JP");
+  }
+  function parse(v) {
+    const n = parseInt(String(v).replace(/,/g, ""), 10);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function saveAndRecalc() {
+    saveData();
+    recalc();
+  }
+
+  // ── Recalc ───────────────────────────────────────────────
+  function recalc() {
+    const totalAssets =
+      parse(document.getElementById("input-wallet").value) +
+      parse(document.getElementById("input-aupay").value) +
+      parse(document.getElementById("input-income").value) +
+      parse(document.getElementById("input-other").value);
+
+    // 未実行の支出のみ残高計算に含める
+    const totalExpenses = expenses
+      .filter(e => !e.done)
+      .reduce((s, e) => s + parse(e.amount), 0);
+
+    const remaining = totalAssets - totalExpenses;
+    const ratio = totalAssets > 0 ? Math.max(0, Math.min(100, (remaining / totalAssets) * 100)) : 0;
+    const color = remaining < 0 ? "#d97272" : remaining < 10000 ? "#c99a3a" : "#5fa37c";
+    const label = remaining < 0 ? "赤字" : remaining < 10000 ? "余裕少なめ" : "余裕あり";
+
+    document.getElementById("summary-amount").textContent = fmt(remaining);
+    document.getElementById("summary-amount").style.color = color;
+    document.getElementById("summary-badge").textContent = label;
+    document.getElementById("summary-badge").style.background = color + "18";
+    document.getElementById("summary-badge").style.color = color;
+    document.getElementById("progress-fill").style.width = ratio + "%";
+    document.getElementById("progress-fill").style.background = color;
+    document.getElementById("total-assets-label").textContent = fmt(totalAssets);
+    document.getElementById("total-expenses-label").textContent = fmt(totalExpenses);
+    document.getElementById("assets-total").textContent = fmt(totalAssets);
+
+    if (document.getElementById("section-summary").classList.contains("active")) {
+      renderSummary();
+    }
+  }
+
+  // ── Tab ──────────────────────────────────────────────────
+  function switchTab(key) {
+    document.querySelectorAll(".tab").forEach((t, i) => {
+      t.classList.toggle("active", ["assets","expenses","summary"][i] === key);
+    });
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById("section-" + key).classList.add("active");
+    if (key === "expenses") renderExpenses();
+    if (key === "summary")  renderSummary();
+  }
+
+  // ── Expenses ─────────────────────────────────────────────
+  function renderExpenses() {
+    const list = document.getElementById("expense-list");
+    if (expenses.length === 0) {
+      list.innerHTML = '<div class="empty-msg">支出項目がありません</div>';
+      return;
+    }
+    list.innerHTML = expenses.map(exp => `
+      <div class="card ${exp.done ? 'is-done' : ''}" id="exp-card-${exp.id}">
+        <div class="expense-item">
+          <div class="expense-main">
+            <div class="expense-meta">
+              ${exp.label}
+              <span style="color:#e0d8d0">·</span>
+              <span class="expense-cat">${exp.category}</span>
+            </div>
+            <div class="input-row">
+              <span class="yen">¥</span>
+              <input class="num-input" type="number" inputmode="numeric" placeholder="0"
+                value="${exp.amount}"
+                ${exp.done ? 'readonly' : ''}
+                oninput="updateExpenseAmount(${exp.id}, this.value)"
+              />
+            </div>
+            <div class="done-label">実行済み（計算対象外）</div>
+          </div>
+          <button class="done-btn ${exp.done ? 'done' : ''}" onclick="toggleDone(${exp.id})">
+            ${exp.done ? '✓ 支出済み' : '支出済み'}
+          </button>
+          <button class="delete-btn" onclick="removeExpense(${exp.id})">×</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function updateExpenseAmount(id, val) {
+    expenses = expenses.map(e => e.id === id ? { ...e, amount: val } : e);
+    saveData();
+    recalc();
+  }
+
+  function toggleDone(id) {
+    expenses = expenses.map(e => e.id === id ? { ...e, done: !e.done } : e);
+    saveData();
+    recalc();
+    renderExpenses();
+  }
+
+  function removeExpense(id) {
+    expenses = expenses.filter(e => e.id !== id);
+    saveData();
+    recalc();
+    renderExpenses();
+  }
+
+  function addExpense() {
+    const label = document.getElementById("new-label").value.trim();
+    if (!label) return;
+    const category = document.getElementById("new-category").value;
+    expenses.push({ id: nextId++, label, amount: "", category, done: false });
+    document.getElementById("new-label").value = "";
+    saveData();
+    recalc();
+    renderExpenses();
+  }
+
+  // ── Summary ──────────────────────────────────────────────
+  function renderSummary() {
+    const totalAssets =
+      parse(document.getElementById("input-wallet").value) +
+      parse(document.getElementById("input-aupay").value) +
+      parse(document.getElementById("input-income").value) +
+      parse(document.getElementById("input-other").value);
+
+    const activeExpenses = expenses.filter(e => !e.done);
+    const doneExpenses   = expenses.filter(e => e.done);
+    const totalActive = activeExpenses.reduce((s, e) => s + parse(e.amount), 0);
+    const totalDone   = doneExpenses.reduce((s, e) => s + parse(e.amount), 0);
+    const remaining = totalAssets - totalActive;
+    const color = remaining < 0 ? "#d97272" : remaining < 10000 ? "#c99a3a" : "#5fa37c";
+
+    // Category breakdown (active only)
+    const bycat = {};
+    CATEGORIES.forEach(cat => {
+      const sum = activeExpenses.filter(e => e.category === cat).reduce((s, e) => s + parse(e.amount), 0);
+      if (sum > 0) bycat[cat] = sum;
+    });
+
+    const catList = document.getElementById("category-list");
+    if (Object.keys(bycat).length === 0) {
+      catList.innerHTML = '<div class="empty-msg">未実行の支出がありません</div>';
+    } else {
+      catList.innerHTML = Object.entries(bycat).map(([cat, amt]) => {
+        const pct = totalActive > 0 ? (amt / totalActive) * 100 : 0;
+        return `
+          <div class="card">
+            <div class="cat-row">
+              <span style="font-size:14px;color:#5a5248">${cat}</span>
+              <span style="font-weight:700;color:#2d2a26">${fmt(amt)}</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+            <div class="pct-text">支出全体の ${pct.toFixed(1)}%</div>
+          </div>`;
+      }).join("");
+    }
+
+    document.getElementById("final-assets").textContent = fmt(totalAssets);
+    document.getElementById("final-expenses").textContent = "− " + fmt(totalActive);
+    document.getElementById("final-done").textContent = fmt(totalDone);
+    document.getElementById("final-remaining").textContent = fmt(remaining);
+    document.getElementById("final-remaining").style.color = color;
+  }
+
+  // ── Reset ────────────────────────────────────────────────
+  function confirmReset() {
+    if (!confirm("今月分のデータをすべてリセットしますか？")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    document.getElementById("input-wallet").value = "";
+    document.getElementById("input-aupay").value  = "";
+    document.getElementById("input-income").value = "";
+    document.getElementById("input-other").value  = "";
+    expenses = DEFAULT_EXPENSES.map(e => ({ ...e, done: false }));
+    nextId = 10;
+    recalc();
+    renderExpenses();
+  }
+
+  // ── Init ─────────────────────────────────────────────────
+  restoreData();
+  renderExpenses();
+  recalc();
+</script>
+</body>
+</html>
